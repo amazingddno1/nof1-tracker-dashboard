@@ -58,7 +58,36 @@ module.exports = async (req, res) => {
         }
 
         const data = await response.json();
-        
+
+        const walletTimestamp = Date.now();
+        const walletQueryString =
+            `quoteAsset=USDT&timestamp=${walletTimestamp}&recvWindow=10000`;
+
+        const walletSignature = generateSignature(
+            walletQueryString,
+            secretKey
+        );
+
+        const walletResponse = await fetch(
+            `${BINANCE_API_BASEURL}/sapi/v1/asset/wallet/balance?${walletQueryString}&signature=${walletSignature}`,
+            {
+                headers: {
+                    'X-MBX-APIKEY': apiKey
+                }
+            }
+        );
+
+        if (!walletResponse.ok) {
+            throw new Error(`获取币安交易所总余额失败：${await walletResponse.text()}`);
+        }
+
+        const walletData = await walletResponse.json();
+
+        data.totalAccountBalance = walletData.reduce(
+            (sum, wallet) => sum + Number(wallet.balance || 0),
+            0
+        );
+
         // 调试日志：查看账户数据
         console.log('账户数据:', JSON.stringify({
             totalWalletBalance: data.totalWalletBalance,
@@ -67,7 +96,7 @@ module.exports = async (req, res) => {
             totalMarginBalance: data.totalMarginBalance,
             totalPositionInitialMargin: data.totalPositionInitialMargin
         }, null, 2));
-        
+
         res.json(data);
 
     } catch (error) {

@@ -79,7 +79,7 @@ class BackendAPIClient {
         }
     }
 
-    }
+}
 
 // 数据管理器
 // 格式化持仓数量显示
@@ -306,15 +306,15 @@ class DataManager {
         filteredTrades.forEach(trade => {
             // 使用币安API返回的实际已实现盈亏
             const realizedPnl = trade.realizedPnl ? parseFloat(trade.realizedPnl) : 0;
-            
+
             // 累计总已实现盈亏
             totalRealizedPnl += realizedPnl;
-            
+
             // 更新单笔最大盈利(只看正值)
             if (realizedPnl > 0 && realizedPnl > maxProfit) {
                 maxProfit = realizedPnl;
             }
-            
+
             // 更新单笔最大损失(只看负值)
             if (realizedPnl < 0 && realizedPnl < maxLoss) {
                 maxLoss = realizedPnl;
@@ -325,7 +325,7 @@ class DataManager {
         this.data.account.maxProfit = maxProfit;
         this.data.account.maxLoss = maxLoss;
         this.data.account.totalRealizedPnl = totalRealizedPnl;
-        
+
         // 调试日志
         console.log('最大盈利/损失计算:', {
             maxProfit: maxProfit.toFixed(2),
@@ -496,7 +496,8 @@ class UIManager {
         if (!account) return;
 
         // 总资产
-        this.updateElement('totalAssets', parseFloat(account.totalWalletBalance).toFixed(2));
+        //this.updateElement('totalAssets', parseFloat(account.totalWalletBalance).toFixed(2));
+        this.updateElement('totalAssets', Number(account.totalAccountBalance || 0).toFixed(2));
 
         // 总盈利
         const totalProfit = account.totalProfit || 0;
@@ -536,13 +537,13 @@ class UIManager {
             `;
             return;
         }
-        
+
         // 过滤出有实际持仓的记录（positionAmt != 0）
         const activePositions = positions.filter(position => {
             const posAmt = parseFloat(position.positionAmt);
             return posAmt !== 0;
         });
-        
+
         if (!activePositions || activePositions.length === 0) {
             tbody.innerHTML = `
                 <tr class="no-data-row">
@@ -551,13 +552,13 @@ class UIManager {
             `;
             return;
         }
-        
+
         const rows = activePositions.map(position => {
             const posAmt = parseFloat(position.positionAmt);
             const entryPrice = parseFloat(position.entryPrice);
             const markPrice = parseFloat(position.markPrice);
             const unrealizedPnl = parseFloat(position.unRealizedProfit);
-            
+
             // 计算保证金：对于全仓模式，使用 notional / leverage；对于逐仓模式，使用 isolatedMargin
             let margin;
             if (position.marginType === 'cross') {
@@ -569,7 +570,7 @@ class UIManager {
                 // 逐仓模式：直接使用 isolatedMargin
                 margin = parseFloat(position.isolatedMargin);
             }
-            
+
             // 收益率 = 未实现盈亏 / 保证金 × 100%
             const pnlRate = margin > 0 ? (unrealizedPnl / margin) * 100 : 0;
 
@@ -588,7 +589,7 @@ class UIManager {
         }).join('');
 
         tbody.innerHTML = rows;
-        
+
         // 更新持仓数量显示
         const positionCountElement = document.getElementById('positionCount');
         if (positionCountElement) {
